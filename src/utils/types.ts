@@ -1,5 +1,10 @@
 export type Difficulty = "easy" | "medium" | "hard" | "very hard";
 
+export interface HeaderProps {
+  currentDifficulty: Difficulty;
+  onDifficultyChange: (difficulty: Difficulty) => void;
+}
+
 export interface Question {
   question: string;
   options: string[];
@@ -23,4 +28,5 @@ export interface QuizQuestionProps {
   score: number;
   highScore: number;
 }
+
 export type HighScores = Record<Difficulty, number>;

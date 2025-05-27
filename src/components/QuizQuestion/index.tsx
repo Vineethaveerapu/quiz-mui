@@ -11,7 +11,7 @@ import {
 } from "@mui/material";
 import { QuizQuestionProps } from "../../utils/types";
 
-export const QuizQuestion = ({
+const QuizQuestion = ({
   question,
   questionNumber,
   selectedAnswer,
@@ -69,3 +69,5 @@ export const QuizQuestion = ({
     </Paper>
   );
 };
+
+export default QuizQuestion;

@@ -5,17 +5,9 @@ import {
   ButtonGroup,
   Button
 } from "@mui/material";
-import { Difficulty } from "../../utils/types";
+import { Difficulty, HeaderProps } from "../../utils/types";
 
-interface HeaderProps {
-  currentDifficulty: Difficulty;
-  onDifficultyChange: (difficulty: Difficulty) => void;
-}
-
-export const Header = ({
-  currentDifficulty,
-  onDifficultyChange
-}: HeaderProps) => {
+const Header = ({ currentDifficulty, onDifficultyChange }: HeaderProps) => {
   return (
     <AppBar position="static">
       <Toolbar>
@@ -39,3 +31,5 @@ export const Header = ({
     </AppBar>
   );
 };
+
+export default Header;
