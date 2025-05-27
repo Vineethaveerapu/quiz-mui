@@ -1,95 +1,171 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+"use client";
+
+import { useState, useEffect } from "react";
+import { Box, Container, Snackbar, Alert } from "@mui/material";
+import { ThemeProvider, createTheme } from "@mui/material/styles";
+import { Header } from "../components/Header";
+import { QuizQuestion } from "../components/QuizQuestion";
+import { generateQuestion } from "../utils/questionGenerator";
+import { Difficulty, Question, QuizState, HighScores } from "../utils/types";
+
+const theme = createTheme({
+  palette: {
+    primary: {
+      main: "#2196f3"
+    },
+    secondary: {
+      main: "#f50057"
+    }
+  }
+});
+
+const getInitialState = (): QuizState => ({
+  currentQuestion: 0,
+  score: 0,
+  answers: [],
+  difficulty: "easy"
+});
+
+const getInitialHighScores = (): HighScores => ({
+  easy: 0,
+  medium: 0,
+  hard: 0,
+  "very hard": 0
+});
 
 export default function Home() {
-  return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol>
-          <li>
-            Get started by editing <code>src/app/page.tsx</code>.
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const [isClient, setIsClient] = useState(false);
+  const [quizState, setQuizState] = useState<QuizState>(getInitialState);
+  const [question, setQuestion] = useState<Question>(() =>
+    generateQuestion(quizState.difficulty)
+  );
+  const [selectedAnswer, setSelectedAnswer] = useState<string>("");
+  const [showResult, setShowResult] = useState(false);
+  const [highScores, setHighScores] =
+    useState<HighScores>(getInitialHighScores);
 
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
+  // Initialize client-side state
+  useEffect(() => {
+    setIsClient(true);
+    const savedState = localStorage.getItem("quizState");
+    if (savedState) {
+      setQuizState(JSON.parse(savedState));
+    }
+
+    const savedScores = localStorage.getItem("highScores");
+    if (savedScores) {
+      setHighScores(JSON.parse(savedScores));
+    }
+  }, []);
+
+  // Save state to localStorage
+  useEffect(() => {
+    if (isClient) {
+      localStorage.setItem("quizState", JSON.stringify(quizState));
+    }
+  }, [quizState, isClient]);
+
+  useEffect(() => {
+    if (isClient) {
+      localStorage.setItem("highScores", JSON.stringify(highScores));
+    }
+  }, [highScores, isClient]);
+
+  const handleDifficultyChange = (difficulty: Difficulty) => {
+    setQuizState((prev) => ({
+      ...prev,
+      difficulty,
+      currentQuestion: 0,
+      score: 0,
+      answers: []
+    }));
+    setQuestion(generateQuestion(difficulty));
+    setSelectedAnswer("");
+    setShowResult(false);
+  };
+
+  const handleAnswerSubmit = () => {
+    const isCorrect = selectedAnswer === question.correctAnswer;
+    const newScore = isCorrect ? quizState.score + 1 : quizState.score;
+
+    setQuizState((prev) => ({
+      ...prev,
+      score: newScore,
+      answers: [...prev.answers, selectedAnswer],
+      currentQuestion: prev.currentQuestion + 1
+    }));
+
+    if (newScore > highScores[quizState.difficulty]) {
+      setHighScores((prev) => ({
+        ...prev,
+        [quizState.difficulty]: newScore
+      }));
+    }
+
+    setShowResult(true);
+    setTimeout(() => {
+      setQuestion(generateQuestion(quizState.difficulty));
+      setSelectedAnswer("");
+      setShowResult(false);
+    }, 1500);
+  };
+
+  const resetQuiz = () => {
+    setQuizState({
+      currentQuestion: 0,
+      score: 0,
+      answers: [],
+      difficulty: quizState.difficulty
+    });
+    setQuestion(generateQuestion(quizState.difficulty));
+    setSelectedAnswer("");
+    setShowResult(false);
+  };
+
+  // Don't render anything until we're on the client side
+  if (!isClient) {
+    return null;
+  }
+
+  return (
+    <ThemeProvider theme={theme}>
+      <Box sx={{ flexGrow: 1 }}>
+        <Header
+          currentDifficulty={quizState.difficulty}
+          onDifficultyChange={handleDifficultyChange}
+        />
+
+        <Container maxWidth="md" sx={{ mt: 4 }}>
+          <Box sx={{ width: "100%" }}>
+            <QuizQuestion
+              question={question}
+              questionNumber={quizState.currentQuestion}
+              selectedAnswer={selectedAnswer}
+              onAnswerSelect={setSelectedAnswer}
+              onSubmit={handleAnswerSubmit}
+              onReset={resetQuiz}
+              score={quizState.score}
+              highScore={highScores[quizState.difficulty]}
             />
-            Deploy now
-          </a>
-          <a
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles.secondary}
+          </Box>
+        </Container>
+
+        <Snackbar
+          open={showResult}
+          autoHideDuration={1500}
+          anchorOrigin={{ vertical: "top", horizontal: "center" }}
+        >
+          <Alert
+            severity={
+              selectedAnswer === question.correctAnswer ? "success" : "error"
+            }
           >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className={styles.footer}>
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+            {selectedAnswer === question.correctAnswer
+              ? "Correct!"
+              : "Incorrect!"}
+          </Alert>
+        </Snackbar>
+      </Box>
+    </ThemeProvider>
   );
 }
