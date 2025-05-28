@@ -3,8 +3,8 @@
 import { useState, useEffect } from "react";
 import { Box, Container, Snackbar, Alert } from "@mui/material";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
-import { Header } from "../components/Header";
-import { QuizQuestion } from "../components/QuizQuestion";
+import Header from "../components/Header";
+import QuizQuestion from "../components/QuizQuestion";
 import { generateQuestion } from "../utils/questionGenerator";
 import { Difficulty, Question, QuizState, HighScores } from "../utils/types";
 
