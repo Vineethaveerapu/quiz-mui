@@ -1,123 +1,98 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Box, Container, Snackbar, Alert } from "@mui/material";
-import { ThemeProvider, createTheme } from "@mui/material/styles";
+import { Box, Container } from "@mui/material";
 import Header from "../components/Header";
 import QuizQuestion from "../components/QuizQuestion";
+import ResultDialog from "@/components/Dialog";
 import { generateQuestion } from "../utils/questionGenerator";
-import { Difficulty, Question, QuizState, HighScores } from "../utils/types";
-
-const theme = createTheme({
-  palette: {
-    primary: {
-      main: "#2196f3"
-    },
-    secondary: {
-      main: "#f50057"
-    }
-  }
-});
-
-const getInitialState = (): QuizState => ({
-  currentQuestion: 0,
-  score: 0,
-  answers: [],
-  difficulty: "easy"
-});
-
-const getInitialHighScores = (): HighScores => ({
-  easy: 0,
-  medium: 0,
-  hard: 0,
-  "very hard": 0
-});
+import { Difficulty, Question, HighScores } from "../utils/types";
 
 export default function Home() {
+  // Quiz state
   const [isClient, setIsClient] = useState(false);
-  const [quizState, setQuizState] = useState<QuizState>(getInitialState);
-  const [question, setQuestion] = useState<Question>(() =>
-    generateQuestion(quizState.difficulty)
-  );
-  const [selectedAnswer, setSelectedAnswer] = useState<string>("");
+  const [currentQuestion, setCurrentQuestion] = useState(0);
+  const [score, setScore] = useState(0);
+  const [difficulty, setDifficulty] = useState<Difficulty>("easy");
+  const [question, setQuestion] = useState<Question>(() => ({
+    question: "",
+    options: [],
+    correctAnswer: ""
+  }));
+  const [selectedAnswer, setSelectedAnswer] = useState("");
   const [showResult, setShowResult] = useState(false);
-  const [highScores, setHighScores] =
-    useState<HighScores>(getInitialHighScores);
+
+  // High scores
+  const [highScores, setHighScores] = useState<HighScores>({
+    easy: 0,
+    medium: 0,
+    hard: 0,
+    "very hard": 0
+  });
 
   // Initialize client-side state
   useEffect(() => {
     setIsClient(true);
-    const savedState = localStorage.getItem("quizState");
-    if (savedState) {
-      setQuizState(JSON.parse(savedState));
-    }
-
     const savedScores = localStorage.getItem("highScores");
     if (savedScores) {
       setHighScores(JSON.parse(savedScores));
     }
+    setQuestion(generateQuestion("easy"));
   }, []);
 
-  // Save state to localStorage
-  useEffect(() => {
-    if (isClient) {
-      localStorage.setItem("quizState", JSON.stringify(quizState));
-    }
-  }, [quizState, isClient]);
-
+  // Save high scores whenever they change
   useEffect(() => {
     if (isClient) {
       localStorage.setItem("highScores", JSON.stringify(highScores));
     }
   }, [highScores, isClient]);
 
-  const handleDifficultyChange = (difficulty: Difficulty) => {
-    setQuizState((prev) => ({
-      ...prev,
-      difficulty,
-      currentQuestion: 0,
-      score: 0,
-      answers: []
-    }));
+  // Handle difficulty change
+  const handleDifficultyChange = (newDifficulty: Difficulty) => {
+    setDifficulty(newDifficulty);
+    setCurrentQuestion(0);
+    setScore(0);
+    setQuestion(generateQuestion(newDifficulty));
+    setSelectedAnswer("");
+    setShowResult(false);
+  };
+
+  // Handle answer submission
+  const handleAnswerSubmit = () => {
+    // Check if answer is correct
+    const isCorrect = selectedAnswer === question.correctAnswer;
+
+    // Update score if correct
+    if (isCorrect) {
+      const newScore = score + 1;
+      setScore(newScore);
+
+      // Update high score if needed
+      if (newScore > highScores[difficulty]) {
+        setHighScores((prev) => ({
+          ...prev,
+          [difficulty]: newScore
+        }));
+      }
+    }
+
+    // Show result
+    setShowResult(true);
+  };
+
+  // Handle next question
+  const handleNextQuestion = () => {
+    setCurrentQuestion((prev) => prev + 1);
     setQuestion(generateQuestion(difficulty));
     setSelectedAnswer("");
     setShowResult(false);
   };
 
-  const handleAnswerSubmit = () => {
-    const isCorrect = selectedAnswer === question.correctAnswer;
-    const newScore = isCorrect ? quizState.score + 1 : quizState.score;
-
-    setQuizState((prev) => ({
-      ...prev,
-      score: newScore,
-      answers: [...prev.answers, selectedAnswer],
-      currentQuestion: prev.currentQuestion + 1
-    }));
-
-    if (newScore > highScores[quizState.difficulty]) {
-      setHighScores((prev) => ({
-        ...prev,
-        [quizState.difficulty]: newScore
-      }));
-    }
-
-    setShowResult(true);
-    setTimeout(() => {
-      setQuestion(generateQuestion(quizState.difficulty));
-      setSelectedAnswer("");
-      setShowResult(false);
-    }, 1500);
-  };
-
+  // Reset quiz
   const resetQuiz = () => {
-    setQuizState({
-      currentQuestion: 0,
-      score: 0,
-      answers: [],
-      difficulty: quizState.difficulty
-    });
-    setQuestion(generateQuestion(quizState.difficulty));
+    setCurrentQuestion(0);
+    setScore(0);
+    setQuestion(generateQuestion(difficulty));
     setSelectedAnswer("");
     setShowResult(false);
   };
@@ -128,44 +103,34 @@ export default function Home() {
   }
 
   return (
-    <ThemeProvider theme={theme}>
-      <Box sx={{ flexGrow: 1 }}>
-        <Header
-          currentDifficulty={quizState.difficulty}
-          onDifficultyChange={handleDifficultyChange}
-        />
+    <Box sx={{ flexGrow: 1 }}>
+      <Header
+        currentDifficulty={difficulty}
+        onDifficultyChange={handleDifficultyChange}
+      />
 
-        <Container maxWidth="md" sx={{ mt: 4 }}>
-          <Box sx={{ width: "100%" }}>
-            <QuizQuestion
-              question={question}
-              questionNumber={quizState.currentQuestion}
-              selectedAnswer={selectedAnswer}
-              onAnswerSelect={setSelectedAnswer}
-              onSubmit={handleAnswerSubmit}
-              onReset={resetQuiz}
-              score={quizState.score}
-              highScore={highScores[quizState.difficulty]}
-            />
-          </Box>
-        </Container>
+      <Container maxWidth="md" sx={{ mt: 4 }}>
+        <Box sx={{ width: "100%" }}>
+          <QuizQuestion
+            question={question}
+            questionNumber={currentQuestion}
+            selectedAnswer={selectedAnswer}
+            onAnswerSelect={setSelectedAnswer}
+            onSubmit={handleAnswerSubmit}
+            onReset={resetQuiz}
+            score={score}
+            highScore={highScores[difficulty]}
+          />
+        </Box>
+      </Container>
 
-        <Snackbar
-          open={showResult}
-          autoHideDuration={1500}
-          anchorOrigin={{ vertical: "top", horizontal: "center" }}
-        >
-          <Alert
-            severity={
-              selectedAnswer === question.correctAnswer ? "success" : "error"
-            }
-          >
-            {selectedAnswer === question.correctAnswer
-              ? "Correct!"
-              : "Incorrect!"}
-          </Alert>
-        </Snackbar>
-      </Box>
-    </ThemeProvider>
+      <ResultDialog
+        showResult={showResult}
+        setShowResult={setShowResult}
+        selectedAnswer={selectedAnswer}
+        question={question}
+        onNextQuestion={handleNextQuestion}
+      />
+    </Box>
   );
 }

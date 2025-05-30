@@ -30,3 +30,11 @@ export interface QuizQuestionProps {
 }
 
 export type HighScores = Record<Difficulty, number>;
+
+export interface ResultDialogProps {
+  onNextQuestion: () => void;
+  showResult: boolean;
+  setShowResult: (show: boolean) => void;
+  selectedAnswer: string;
+  question: Question;
+}
