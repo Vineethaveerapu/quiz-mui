@@ -47,7 +47,7 @@ const QuizQuestion = ({
         </RadioGroup>
       </FormControl>
 
-      <Box sx={{ mt: 3 }}>
+      <Box sx={{ mt: 3 }} display="flex" justifyContent="center">
         <Button
           variant="contained"
           color="primary"
